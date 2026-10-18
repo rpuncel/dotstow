@@ -1,0 +1,4 @@
+[env]
+DOCKER_CONTEXT = "podman"
+CONTAINER_ENGINE = "podman"
+KIND_EXPERIMENTAL_PROVIDER = "podman"
