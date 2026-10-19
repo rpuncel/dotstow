@@ -36,6 +36,8 @@ How selectors reach a process:
 - `zsh -c`, `make`, agent shells: inherit the caller's env; `cd` does nothing. Use `mise exec -C <dir> -- …`, or have the Makefile set its own.
 - `DOCKER_HOST` beats `DOCKER_CONTEXT` and mise doesn't manage it — `eval $(minikube docker-env)` silently overrides everything until you unset it.
 
+`docker compose` / `docker buildx` come from Homebrew (`docker-compose`, `docker-buildx`); the CLI finds them through `cliPluginsExtraDirs: ["/opt/homebrew/lib/docker/cli-plugins"]` in `~/.docker/config.json` (a one-off edit; that file isn't stowed). Run `container-doctor --all` to check the whole setup.
+
 Makefile convention:
 
 ```make
