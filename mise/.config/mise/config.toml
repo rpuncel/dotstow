@@ -2,3 +2,5 @@
 DOCKER_CONTEXT = "podman"
 CONTAINER_ENGINE = "podman"
 KIND_EXPERIMENTAL_PROVIDER = "podman"
+# Shims that pin tools to a specific engine (see shims/). Prepended by mise.
+_.path = ["~/.local/shims"]
