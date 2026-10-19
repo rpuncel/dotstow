@@ -1,0 +1,16 @@
+#!/bin/sh
+# minikube's docker driver uses whatever endpoint the docker CLI resolves
+# (DOCKER_HOST > DOCKER_CONTEXT > currentContext) and records none of it.
+# The cluster lives on Colima, so pin it there regardless of the ambient selector.
+unset DOCKER_HOST
+export DOCKER_CONTEXT=colima
+
+# Exec the next minikube on PATH, skipping this shim's own directory.
+self_dir=$(cd "$(dirname "$0")" && pwd -P)
+IFS=:
+for d in $PATH; do
+  [ "$(cd "$d" 2>/dev/null && pwd -P)" = "$self_dir" ] && continue
+  [ -x "$d/minikube" ] && exec "$d/minikube" "$@"
+done
+echo "minikube shim: no real minikube found on PATH" >&2
+exit 127

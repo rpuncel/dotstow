@@ -1,0 +1,82 @@
+#!/bin/sh
+# Show which container engine `docker` (and friends) will talk to, and whether it answers.
+# Cheap: runs only when called. See dotstow README "Container engines".
+#
+#   container-doctor        effective selectors + the resolved endpoint
+#   container-doctor --all  also ping every registered context and docker.sock
+
+status=0
+ok()   { printf 'ok    %s\n' "$*"; }
+warn() { printf 'warn  %s\n' "$*"; status=1; }
+fail() { printf 'FAIL  %s\n' "$*"; status=1; }
+
+# docker info with a 3s cap (macOS has no `timeout`). Args go to docker.
+ping() {
+  docker "$@" info --format '{{.ServerVersion}} {{.OperatingSystem}}' 2>/dev/null &
+  pid=$!
+  ( sleep 3; kill "$pid" ) >/dev/null 2>&1 &
+  watcher=$!
+  wait "$pid"; rc=$?
+  kill "$watcher" 2>/dev/null
+  return $rc
+}
+
+echo "DOCKER_HOST=${DOCKER_HOST-}"
+echo "DOCKER_CONTEXT=${DOCKER_CONTEXT-}"
+echo "CONTAINER_ENGINE=${CONTAINER_ENGINE-}"
+echo "KIND_EXPERIMENTAL_PROVIDER=${KIND_EXPERIMENTAL_PROVIDER-}"
+echo
+
+if [ -n "${DOCKER_HOST-}" ]; then
+  warn "DOCKER_HOST is set; it overrides DOCKER_CONTEXT (minikube docker-env?). unset DOCKER_HOST"
+fi
+
+if [ -n "${DOCKER_CONTEXT-}" ] && ! docker context inspect "$DOCKER_CONTEXT" >/dev/null 2>&1; then
+  fail "DOCKER_CONTEXT=$DOCKER_CONTEXT is not a registered context (docker context ls)"
+fi
+
+resolved=$(docker context show 2>/dev/null)
+if [ -n "${DOCKER_HOST-}" ]; then
+  target="DOCKER_HOST $DOCKER_HOST"
+else
+  target="context $resolved"
+fi
+if out=$(ping); then
+  ok "docker -> $target -> $out"
+else
+  fail "docker -> $target -> no answer"
+fi
+
+# Only read the one field; the file also holds auth entries.
+current=$(jq -r '.currentContext // "default"' "$HOME/.docker/config.json" 2>/dev/null || echo default)
+if [ "$current" = default ]; then
+  ok "currentContext is default"
+else
+  warn "currentContext is $current (expected default; selectors should choose the context)"
+fi
+
+mk=$(command -v minikube)
+case "$mk" in
+  "$HOME/.local/shims/minikube") ok "minikube -> shim (pinned to colima)" ;;
+  "") ;;
+  *) warn "minikube -> $mk, not the shim; is ~/.local/shims first on PATH (mise _.path)?" ;;
+esac
+
+if [ "${1-}" = --all ]; then
+  echo
+  for ctx in $(docker context ls --format '{{.Name}}'); do
+    if out=$(ping --context "$ctx"); then
+      ok "context $ctx -> $out"
+    else
+      fail "context $ctx -> no answer"
+    fi
+  done
+  sock=/var/run/docker.sock
+  if [ -e "$sock" ]; then
+    ok "$sock -> $(realpath "$sock" 2>/dev/null || readlink "$sock")"
+  else
+    warn "$sock missing (Podman Desktop Docker Compatibility off?)"
+  fi
+fi
+
+exit $status
