@@ -10,6 +10,7 @@ Dotfiles managed with [GNU Stow](https://www.gnu.org/software/stow/). Each top-l
 
 | Package   | Provides                                        |
 |-----------|-------------------------------------------------|
+| `containers` | `~/.local/bin/container-doctor` — effective selectors, does the endpoint answer (`--all`: every context + docker.sock) |
 | `kubectl` | `~/aliases.d/kubectl_aliases.sh` (`k`, `kg`, `kd`, …) |
 | `mise`    | `~/.config/mise/` — podman as container engine (`DOCKER_CONTEXT`, `CONTAINER_ENGINE`, `KIND_EXPERIMENTAL_PROVIDER`); prepends `~/.local/shims` to PATH |
 | `shims`   | `~/.local/shims/` — wrappers that pin a tool to one engine (`minikube` → Colima) |
